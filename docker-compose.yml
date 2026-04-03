@@ -1,0 +1,15 @@
+services:
+  beammp-server:
+    image: joshuagessner/beammp-server:latest
+    init: true
+    ports:
+      - "30814:30814/tcp"
+      - "30814:30814/udp"
+    env_file:
+      - beammp-server.env
+    volumes:
+      - beammp-data:/data
+    restart: unless-stopped
+
+volumes:
+  beammp-data:
