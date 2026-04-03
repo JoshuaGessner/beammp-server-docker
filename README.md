@@ -1,11 +1,10 @@
 # beammp-server-docker
 
 Docker image for [BeamMP-Server](https://github.com/BeamMP/BeamMP-Server) based on `debian:bookworm-slim`.
-Designed to be a drop-in replacement for [mbentley/beammp-server](https://github.com/mbentley/docker-beammp-server) and compatible with [beammeup_multi](https://github.com/JoshuaGessner/beammeup_multi).
 
 ## Tags
 
-For a list of tags, see [joshuagessner/beammp-server](https://hub.docker.com/r/joshuagessner/beammp-server/tags) on Docker Hub.
+For a list of tags, see [jwgesshoo/beammp-server](https://hub.docker.com/r/jwgesshoo/beammp-server/tags) on Docker Hub.
 Images are also published to the [GitHub Container Registry](https://ghcr.io/JoshuaGessner/beammp-server-docker).
 
 ## Usage
@@ -19,7 +18,7 @@ docker run -itd \
   -p 30814:30814/udp \
   --name beammp-server \
   -v /data/beammp-server:/data \
-  joshuagessner/beammp-server
+  jwgesshoo/beammp-server
 ```
 
 ### Server configuration with Environment Variables
@@ -34,7 +33,7 @@ docker run -itd \
   --name beammp-server \
   --env-file beammp-server.env \
   -v /data/beammp-server:/data \
-  joshuagessner/beammp-server
+  jwgesshoo/beammp-server
 ```
 
 You can also pass individual environment variables to override specific settings:
@@ -48,7 +47,7 @@ docker run -itd \
   --env-file beammp-server.env \
   -e BEAMMP_MAP="/levels/west_coast_usa/info.json" \
   -v /data/beammp-server:/data \
-  joshuagessner/beammp-server
+  jwgesshoo/beammp-server
 ```
 
 ### Using Docker Compose
