@@ -1,6 +1,6 @@
 services:
   beammp-server:
-    image: joshuagessner/beammp-server:latest
+    image: jwgesshoo/beammp-server:latest
     init: true
     ports:
       - "30814:30814/tcp"
