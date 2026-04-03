@@ -10,6 +10,7 @@ RUN set -eux; \
   apt-get update; \
   apt-get install --no-install-recommends -y ca-certificates jq liblua5.3-0 libssl3 wget; \
   BMPS_VER=$(if [ -z "${BMPS_VER}" ]; then wget -q -O - https://api.github.com/repos/BeamMP/BeamMP-Server/releases/latest | jq -r .tag_name; else echo "${BMPS_VER}"; fi); \
+  [ -n "${BMPS_VER}" ] && [ "${BMPS_VER}" != "null" ] || { echo "ERROR: could not determine BeamMP-Server version" >&2; exit 1; }; \
   case "${TARGETARCH}" in \
     arm64) ARTIFACT_NAME="BeamMP-Server.debian.12.arm64" ;; \
     *)     ARTIFACT_NAME="BeamMP-Server.debian.12.x86_64" ;; \
@@ -18,7 +19,7 @@ RUN set -eux; \
   apt-get autoremove -y; \
   rm -rf /var/lib/apt/lists/*; \
   mkdir -p /data; \
-  wget -q -O /usr/local/bin/BeamMP-Server "https://github.com/BeamMP/BeamMP-Server/releases/download/${BMPS_VER}/${ARTIFACT_NAME}"; \
+  wget -O /usr/local/bin/BeamMP-Server "https://github.com/BeamMP/BeamMP-Server/releases/download/${BMPS_VER}/${ARTIFACT_NAME}"; \
   chmod +x /usr/local/bin/BeamMP-Server; \
   groupadd -g 516 beammp-server; \
   useradd -u 516 -g 516 -d /data beammp-server; \
