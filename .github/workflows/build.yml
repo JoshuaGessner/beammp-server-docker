@@ -40,7 +40,8 @@ jobs:
           if [ -n "${{ github.event.inputs.bmps_ver }}" ]; then
             echo "version=${{ github.event.inputs.bmps_ver }}" >> "$GITHUB_OUTPUT"
           else
-            VERSION=$(curl -sf https://api.github.com/repos/BeamMP/BeamMP-Server/releases/latest | jq -r '.tag_name // empty')
+            VERSION=$(curl -sf -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/BeamMP/BeamMP-Server/releases/latest | jq -r '.tag_name // empty')
             if [ -z "${VERSION}" ]; then
               echo "ERROR: Failed to determine latest BeamMP-Server version" >&2
               exit 1
