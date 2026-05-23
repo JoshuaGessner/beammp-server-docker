@@ -84,8 +84,8 @@ To build the image yourself:
 
 ```sh
 docker build \
-  --build-arg BMPS_VER="v3.9.2" \
-  -t beammp-server:3.9.2 .
+  --build-arg BMPS_VER="v3.9.3" \
+  -t beammp-server:3.9.3 .
 ```
 
 Leave `BMPS_VER` unset to automatically use the latest release:
@@ -99,6 +99,6 @@ docker build -t beammp-server:latest .
 ```sh
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  --build-arg BMPS_VER="v3.9.2" \
-  -t beammp-server:3.9.2 .
+  --build-arg BMPS_VER="v3.9.3" \
+  -t beammp-server:3.9.3 .
 ```
