@@ -7,8 +7,8 @@ on:
     tags:
       - 'v*'
   schedule:
-    # check for new BeamMP-Server releases weekly on Monday at 02:00 UTC
-    - cron: '0 2 * * 1'
+    # check for new BeamMP-Server releases daily at 02:00 UTC
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       bmps_ver:
@@ -17,7 +17,7 @@ on:
         default: ''
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -48,13 +48,34 @@ jobs:
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check if Docker Hub tag already exists
+        id: tag_check
+        run: |
+          VERSION="${{ steps.bmps_ver.outputs.version }}"
+          # Strip leading 'v' for the Docker Hub tag (e.g. v3.9.2 -> 3.9.2)
+          DOCKER_TAG="${VERSION#v}"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://hub.docker.com/v2/repositories/jwgesshoo/beammp-server/tags/${DOCKER_TAG}")
+          if [ -z "${HTTP_STATUS}" ]; then
+            echo "WARNING: Could not reach Docker Hub — proceeding with build to be safe."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "${HTTP_STATUS}" = "200" ]; then
+            echo "Tag ${DOCKER_TAG} already exists on Docker Hub — skipping build."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag ${DOCKER_TAG} not found (HTTP ${HTTP_STATUS}) — proceeding with build."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Log in to Docker Hub
+        if: steps.tag_check.outputs.skip == 'false'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
+        if: steps.tag_check.outputs.skip == 'false'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -62,6 +83,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker meta
+        if: steps.tag_check.outputs.skip == 'false'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -75,6 +97,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Build and push
+        if: steps.tag_check.outputs.skip == 'false'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -86,3 +109,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Update README version references
+        if: steps.tag_check.outputs.skip == 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          VERSION="${{ steps.bmps_ver.outputs.version }}"
+          # Strip leading 'v' for the bare version used in docker tags (e.g. v3.9.2 -> 3.9.2)
+          BARE="${VERSION#v}"
+          # Replace any existing vX.Y.Z build-arg value
+          sed -i -E "s|(--build-arg BMPS_VER=\")v[0-9]+\.[0-9]+\.[0-9]+(\")|\1${VERSION}\2|g" README.md
+          # Replace any existing X.Y.Z docker tag value (lines like -t beammp-server:X.Y.Z)
+          sed -i -E "s|(-t beammp-server:)[0-9]+\.[0-9]+\.[0-9]+|\1${BARE}|g" README.md
+
+      - name: Commit updated README
+        if: steps.tag_check.outputs.skip == 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Pull latest changes first so a concurrent run that already committed the
+          # same update will result in a clean diff and a no-op here.
+          git pull --rebase
+          if git diff --quiet README.md; then
+            echo "README.md already up to date — nothing to commit."
+          else
+            git add README.md
+            git commit -m "docs: update BeamMP-Server version to ${{ steps.bmps_ver.outputs.version }}"
+            git push
+          fi
