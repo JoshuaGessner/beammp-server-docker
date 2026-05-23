@@ -111,9 +111,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update README version references
+      - name: Update README and commit
         if: steps.tag_check.outputs.skip == 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Pull latest changes before modifying README.md so the working tree
+          # is clean and any concurrent commit on the same branch is captured.
+          git pull --rebase
           VERSION="${{ steps.bmps_ver.outputs.version }}"
           # Strip leading 'v' for the bare version used in docker tags (e.g. v3.9.2 -> 3.9.2)
           BARE="${VERSION#v}"
@@ -121,19 +126,10 @@ jobs:
           sed -i -E "s|(--build-arg BMPS_VER=\")v[0-9]+\.[0-9]+\.[0-9]+(\")|\1${VERSION}\2|g" README.md
           # Replace any existing X.Y.Z docker tag value (lines like -t beammp-server:X.Y.Z)
           sed -i -E "s|(-t beammp-server:)[0-9]+\.[0-9]+\.[0-9]+|\1${BARE}|g" README.md
-
-      - name: Commit updated README
-        if: steps.tag_check.outputs.skip == 'false' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Pull latest changes first so a concurrent run that already committed the
-          # same update will result in a clean diff and a no-op here.
-          git pull --rebase
           if git diff --quiet README.md; then
             echo "README.md already up to date — nothing to commit."
           else
             git add README.md
-            git commit -m "docs: update BeamMP-Server version to ${{ steps.bmps_ver.outputs.version }}"
+            git commit -m "docs: update BeamMP-Server version to ${VERSION}"
             git push
           fi
